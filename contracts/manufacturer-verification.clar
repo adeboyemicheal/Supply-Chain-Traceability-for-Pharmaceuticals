@@ -1,30 +1,46 @@
+;; Manufacturer Verification Contract
+;; This contract validates legitimate drug producers
 
-;; title: manufacturer-verification
-;; version:
-;; summary:
-;; description:
+(define-data-var admin principal tx-sender)
 
-;; traits
-;;
+;; Map to store verified manufacturers
+(define-map verified-manufacturers principal bool)
 
-;; token definitions
-;;
+;; Error codes
+(define-constant ERR_NOT_AUTHORIZED u100)
+(define-constant ERR_ALREADY_VERIFIED u101)
+(define-constant ERR_NOT_FOUND u102)
 
-;; constants
-;;
+;; Function to verify a manufacturer
+(define-public (verify-manufacturer (manufacturer principal))
+  (begin
+    (asserts! (is-eq tx-sender (var-get admin)) (err ERR_NOT_AUTHORIZED))
+    (asserts! (is-none (map-get? verified-manufacturers manufacturer)) (err ERR_ALREADY_VERIFIED))
+    (map-set verified-manufacturers manufacturer true)
+    (ok true)
+  )
+)
 
-;; data vars
-;;
+;; Function to revoke verification
+(define-public (revoke-verification (manufacturer principal))
+  (begin
+    (asserts! (is-eq tx-sender (var-get admin)) (err ERR_NOT_AUTHORIZED))
+    (asserts! (is-some (map-get? verified-manufacturers manufacturer)) (err ERR_NOT_FOUND))
+    (map-delete verified-manufacturers manufacturer)
+    (ok true)
+  )
+)
 
-;; data maps
-;;
+;; Function to check if a manufacturer is verified
+(define-read-only (is-verified (manufacturer principal))
+  (default-to false (map-get? verified-manufacturers manufacturer))
+)
 
-;; public functions
-;;
-
-;; read only functions
-;;
-
-;; private functions
-;;
-
+;; Function to transfer admin rights
+(define-public (transfer-admin (new-admin principal))
+  (begin
+    (asserts! (is-eq tx-sender (var-get admin)) (err ERR_NOT_AUTHORIZED))
+    (var-set admin new-admin)
+    (ok true)
+  )
+)
